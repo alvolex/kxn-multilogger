@@ -1,0 +1,12 @@
+{
+  "id": "kxn-multilogger",
+  "version": "0.0.2",
+  "name": "Multilogger",
+  "author": "My Company",
+  "description": "A RESTApp boilerplate",
+  "helpUrl": "https://example.com/restapps",
+  "type": "RESTApp",
+  "bundled": true,
+  "maxUploadSizeInMB": 0,
+  "requirePrivileged": true 
+}
