@@ -10,13 +10,15 @@ const LOG_FILE_NAME = "log.txt";
 const createLogFile = (
   logFolder: Node,
   loggingAppName: string,
-  errorLog: string
+  errorLog: string,
+  logType: ErrorTypes = ErrorTypes.ERROR
 ) => {
   const jsonToLog = [
     {
       date: new Date().toISOString(),
       loggingAppName,
       errorLog,
+      logType,
     },
   ];
 
@@ -46,13 +48,15 @@ const getLogFile = (logFolder: Node) => {
 const updateLogFile = (
   logFile: Node,
   errorLog: string,
-  loggingAppName: string
+  loggingAppName: string,
+  logType: ErrorTypes = ErrorTypes.ERROR
 ) => {
   const updatedLog = JSON.parse(fileUtil.getContentAsString(logFile));
   const newLog = {
     date: new Date().toISOString(),
     loggingAppName,
     errorLog,
+    logType,
   };
   updatedLog.push(newLog);
   const jsonToBase64 = JSON.stringify(updatedLog);
@@ -61,20 +65,27 @@ const updateLogFile = (
   fileUtil.updateBinaryContentFromBase64(logFile, base64);
 };
 
+enum ErrorTypes {
+  ERROR = "error",
+  WARNING = "warning",
+  INFO = "info",
+}
+
 const updateLogContents = (
   logFolder: Node,
   loggingAppName: string,
-  errorLog: string
+  errorLog: string,
+  logType: ErrorTypes = ErrorTypes.ERROR
 ) => {
   try {
     const logFile = getLogFile(logFolder);
 
     if (!logFile) {
-      createLogFile(logFolder, loggingAppName, errorLog);
+      createLogFile(logFolder, loggingAppName, errorLog, logType);
       return "Logfile created";
     }
 
-    updateLogFile(logFile, errorLog, loggingAppName);
+    updateLogFile(logFile, errorLog, loggingAppName, logType);
 
     return JSON.parse(fileUtil.getContentAsString(logFile));
   } catch (error) {
@@ -92,7 +103,7 @@ const updateLogContents = (
 const structuredLogData = () => {
   const logFolder = appData.getNode("logFolder");
   const logFile = getLogFile(logFolder);
-  const data = JSON.parse(fileUtil.getContentAsString(logFile));  
+  const data = JSON.parse(fileUtil.getContentAsString(logFile));
 
   const structuredData = data.reduce((acc: any, log: any) => {
     const { loggingAppName } = log;
@@ -103,7 +114,7 @@ const structuredLogData = () => {
     return acc;
   }, {});
   return structuredData;
-}
+};
 
 router.get("/getLogFile", (req, res) => {
   privileged.doPrivilegedAction(() => {
@@ -120,13 +131,29 @@ router.get("/getLogFile", (req, res) => {
   });
 });
 
+function isValidEnumValue(enumObj: any, value: string): boolean {
+  for (const key in enumObj) {
+    if (enumObj[key] === value) {
+      return true;
+    }
+  }
+  return false;
+}
+
 router.post("/updateLog", (req, res) => {
   privileged.doPrivilegedAction(() => {
     const logFolder = appData.getNode("logFolder");
+
+    let logType = req.params?.logType as ErrorTypes;
+    if (!logType || !isValidEnumValue(ErrorTypes, logType)) {
+      logType = ErrorTypes.ERROR;
+    }
+
     const data = updateLogContents(
       logFolder,
       req.params.loggingAppName,
-      req.params.errorLog
+      req.params.errorLog,
+      logType
     );
 
     res.json({ allLogs: data });
