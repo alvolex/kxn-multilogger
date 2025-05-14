@@ -11,7 +11,8 @@ const createLogFile = (
   logFolder: Node,
   loggingAppName: string,
   errorLog: string,
-  logType: ErrorTypes = ErrorTypes.ERROR
+  logType: ErrorTypes = ErrorTypes.ERROR,
+  pageURL: string | null = null
 ) => {
   const jsonToLog = [
     {
@@ -19,6 +20,7 @@ const createLogFile = (
       loggingAppName,
       errorLog,
       logType,
+      pageURL
     },
   ];
 
@@ -49,7 +51,8 @@ const updateLogFile = (
   logFile: Node,
   errorLog: string,
   loggingAppName: string,
-  logType: ErrorTypes = ErrorTypes.ERROR
+  logType: ErrorTypes = ErrorTypes.ERROR,
+  pageURL: string | null = null
 ) => {
   const updatedLog = JSON.parse(fileUtil.getContentAsString(logFile));
   const newLog = {
@@ -57,6 +60,7 @@ const updateLogFile = (
     loggingAppName,
     errorLog,
     logType,
+    pageURL
   };
   updatedLog.push(newLog);
   const jsonToBase64 = JSON.stringify(updatedLog);
@@ -75,17 +79,18 @@ const updateLogContents = (
   logFolder: Node,
   loggingAppName: string,
   errorLog: string,
-  logType: ErrorTypes = ErrorTypes.ERROR
+  logType: ErrorTypes = ErrorTypes.ERROR,
+  pageURL: string | null = null
 ) => {
   try {
     const logFile = getLogFile(logFolder);
 
     if (!logFile) {
-      createLogFile(logFolder, loggingAppName, errorLog, logType);
+      createLogFile(logFolder, loggingAppName, errorLog, logType, pageURL);
       return "Logfile created";
     }
 
-    updateLogFile(logFile, errorLog, loggingAppName, logType);
+    updateLogFile(logFile, errorLog, loggingAppName, logType, pageURL);
 
     return JSON.parse(fileUtil.getContentAsString(logFile));
   } catch (error) {
@@ -149,11 +154,17 @@ router.post("/updateLog", (req, res) => {
       logType = ErrorTypes.ERROR;
     }
 
+    let pageURL: string | null = req.params?.pageURL;
+    if (!pageURL) {
+      pageURL = null;
+    }
+
     const data = updateLogContents(
       logFolder,
       req.params.loggingAppName,
       req.params.errorLog,
-      logType
+      logType,
+      pageURL
     );
 
     res.json({ allLogs: data });
